@@ -21,7 +21,7 @@ colnames(sims)
 # ---- Obtain regional varying intercept a_j ----
 # draws for overall mean
 mu_a_sims <- as.matrix(m_la, 
-                       pars = "(Intercept)")
+                       pars = "Score")
 # draws for region-level error
 # u_sims <- as.matrix(m_la, 
 #                     regex_pars = "b\\[\\(Intercept\\) RGN19NM\\:")
@@ -50,3 +50,29 @@ names(a_quant) <- c("Q2.5", "Q50", "Q97.5")
 # Combine summary statistics of posterior simulation draws
 a_df <- data.frame(a_mean, a_sd, a_quant)
 round(a_df, 2)
+
+# ---- Plot predicted death rates ----
+new_data <- expand_grid(
+  Score = seq(min(deaths_la$Score), max(deaths_la$Score)),
+  RGN19NM = unique(deaths_la$RGN19NM)
+)
+
+post <- posterior_predict(m_la, new_data)
+pred <- posterior_epred(m_la, new_data)
+
+quants <- apply(post, 2, quantile, probs = c(0.025, 0.5, 0.975))  # quantiles over mcmc samples
+quants2 <- apply(pred, 2, quantile, probs = c(0.025, 0.5, 0.975))  # quantiles over mcmc samples
+row.names(quants) <- c("sim.lwr", "sim.med", "sim.upr")
+row.names(quants2) <- c("lwr", "DeathRate.pred", "upr")
+
+new_data <- cbind(new_data, t(quants), t(quants2))
+
+new_data %>% 
+  ggplot(aes(x = Score, y = DeathRate.pred)) +
+  geom_line(aes(colour = RGN19NM)) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr, fill = RGN19NM), alpha = 0.2) +
+  
+  # geom_blank(data = ylims) +  # plot dummy data to give facets the same y limits by country
+  
+  facet_wrap(~RGN19NM) +
+  theme_classic()
