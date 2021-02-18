@@ -1,0 +1,113 @@
+---
+title: "Covid-19 and regional deprivation in England"
+author: "Dr Matthew Gwynfryn Thomas"
+date: "18/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loading, include=FALSE}
+library(tidyverse)
+
+deaths_msoa <- read_csv("data/deaths-msoa.csv")
+deaths_la <- read_csv("data/deaths-la.csv")
+```
+
+## Deaths and deprivation in Local Authorities
+Overall, there's a strong association between Covid-19 death rates and deprivation - more deprived Local Authorities have higher death rates:
+
+```{r la_deaths_overall, echo=FALSE, message=FALSE, warning=FALSE}
+deaths_la %>% 
+  ggplot(aes(y = DeathRate, x = Score, colour = RGN19NM, fill = RGN19NM)) +
+  geom_point() +
+  geom_smooth(method = "lm", colour = "black", fill = "grey") +
+  labs(y = "Death rate per 100,000 population", x = "IMD - average score (higher is more deprived)", colour = NULL, fill = NULL) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+```
+
+Generally, Covid-19 death rates are higher in more deprived Local Authorities, regardless of region - except in London and the South West - although the strength of the association varies from place to place:
+
+```{r la_deaths_score, echo=FALSE, message=FALSE, warning=FALSE}
+deaths_la %>% 
+  ggplot(aes(y = DeathRate, x = Score, colour = RGN19NM, fill = RGN19NM)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~RGN19NM) +
+  labs(y = "Death rate per 100,000 population", x = "IMD - average score (higher is more deprived)", colour = NULL, fill = NULL) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+```
+
+And the pattern is broadly the same when looking at proportions of the population who live within the nation's most deprived neighbourhoods, rather than just the Local Authorities' average deprivation scores:
+
+```{r la_deaths_extent, echo=FALSE, message=FALSE, warning=FALSE}
+deaths_la %>% 
+  ggplot(aes(y = DeathRate, x = Extent, colour = RGN19NM, fill = RGN19NM)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~RGN19NM) +
+  scale_x_continuous(labels = scales::percent) +
+  labs(y = "Death rate per 100,000 population", x = "Percent of population living in England's most deprived areas", colour = NULL, fill = NULL) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+```
+
+## MSOA-level deprivation
+Similarly, death rates tend to be higher in more deprived neighbourhoods, although the association isn't as strong compared to looking at Local Authorities:
+
+```{r msoa_deaths_overall, echo=FALSE, message=FALSE, warning=FALSE}
+deaths_msoa %>% 
+  ggplot(aes(y = DeathRate, x = Score, colour = RGN19NM, fill = RGN19NM)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", colour = "black", fill = "grey") +
+  labs(y = "Death rate per 100,000 population", x = "IMD - average score (higher is more deprived)", colour = NULL, fill = NULL) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+```
+
+However, when looking at neighbourhood-level deprivation by region, the association between death rates and deprivation seems a lot weaker:
+
+```{r msoa_deaths_score, echo=FALSE, message=FALSE, warning=FALSE}
+deaths_msoa %>% 
+  ggplot(aes(y = DeathRate, x = Score, colour = RGN19NM, fill = RGN19NM)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", colour = "black", fill = "grey") +
+  facet_wrap(~RGN19NM) +
+  labs(y = "Death rate per 100,000 population", x = "IMD - average score (higher is more deprived)", colour = NULL, fill = NULL) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+```
+
+And this pattern remains similar when using other summary measures of deprivation, such as the proportion of the population who live within the nation's most deprived neighbourhoods...
+
+```{r msoa_deaths_extent, echo=FALSE, message=FALSE, warning=FALSE}
+deaths_msoa %>% 
+  ggplot(aes(y = DeathRate, x = Extent, colour = RGN19NM, fill = RGN19NM)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", colour = "black", fill = "grey") +
+  facet_wrap(~RGN19NM) +
+  scale_x_continuous(labels = scales::percent) +
+  labs(y = "Death rate per 100,000 population", x = "Percent of population living in England's most deprived areas", colour = NULL, fill = NULL) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+```
+
+... or the proportion of LSOAs within an MSOA which are among the nation's most deprived:
+
+```{r msoa_deaths_proportion, echo=FALSE, message=FALSE, warning=FALSE}
+deaths_msoa %>% 
+  ggplot(aes(y = DeathRate, x = Proportion, colour = RGN19NM, fill = RGN19NM)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", colour = "black", fill = "grey") +
+  facet_wrap(~RGN19NM) +
+  scale_x_continuous(labels = scales::percent) +
+  labs(y = "Death rate per 100,000 population", x = "Percent of neighbourhoods in England's most deprived 10%", colour = NULL, fill = NULL) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+```
+
+So although more deprived areas have higher death rates on average at a national level and Local Authority level, the picture becomes a bit blurred when looking at neighbourhoods.
