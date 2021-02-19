@@ -98,3 +98,15 @@ slopes <- bind_rows(
 
 # Save slopes
 write_csv(slopes, "data/regression-slopes.csv")
+
+# ---- Fit models with IMD score rather than extent ----
+m_score_la <- stan_lmer(DeathRate ~ Score + (Score | RGN19NM), data = deaths_la,
+                        prior_intercept = normal(0, 5), prior = normal(0,2), prior_covariance = decov(regularization=2),
+                        cores = 1, chains = 4)
+
+m_score_msoa <- stan_lmer(DeathRate ~ Score + (Score | RGN19NM), data = deaths_msoa,
+                          prior_intercept = normal(0, 5), prior = normal(0,2), prior_covariance = decov(regularization=2),
+                          cores = 1, chains = 4)
+
+write_rds(m_score_la, "data/la-score-model.rds")
+write_rds(m_score_msoa, "data/msoa-score-model.rds")
