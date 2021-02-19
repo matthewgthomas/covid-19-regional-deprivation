@@ -42,16 +42,31 @@ deaths <-
 
 GET("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/833995/File_10_-_IoD2019_Local_Authority_District_Summaries__lower-tier__.xlsx",
     write_disk(tf <- tempfile(fileext = ".xlsx")))
+
+# excel_sheets(tf)
+
 imd <- read_excel(tf, sheet = "IMD")
+imd_income <- read_excel(tf, sheet = "Income")
+imd_employment <- read_excel(tf, sheet = "Employment")
+imd_education <- read_excel(tf, sheet = "Education")
+imd_health <- read_excel(tf, sheet = "Health")
+imd_crime <- read_excel(tf, sheet = "Crime")
+imd_barriers <- read_excel(tf, sheet = "Barriers")
+imd_environment <- read_excel(tf, sheet = "Living")
 
 regions <- read_csv("https://opendata.arcgis.com/datasets/3ba3daf9278f47daba0f561889c3521a_0.csv")
 
 la <- deaths %>% 
   left_join(imd, by = c("areaCode" = "Local Authority District code (2019)")) %>% 
+  left_join(imd_health, by = c("areaCode" = "Local Authority District code (2019)")) %>% 
+  left_join(imd_barriers, by = c("areaCode" = "Local Authority District code (2019)")) %>% 
   left_join(regions, by = c("areaCode" = "LAD19CD")) %>% 
   
   filter(!is.na(`IMD 2019 - Extent`))
 
 la %>% 
-  select(LAD19CD = areaCode, RGN19NM, DeathRate = cumDeathsByPublishDateRate, Score = `IMD - Average score`, Extent = `IMD 2019 - Extent`, Proportion = `IMD - Proportion of LSOAs in most deprived 10% nationally`) %>% 
+  select(LAD19CD = areaCode, RGN19NM, DeathRate = cumDeathsByPublishDateRate, 
+         Score = `IMD - Average score`, Extent = `IMD 2019 - Extent`, Proportion = `IMD - Proportion of LSOAs in most deprived 10% nationally`, 
+         Health_Score = `Health Deprivation and Disability - Average score`, Health_Proportion = `Health Deprivation and Disability - Proportion of LSOAs in most deprived 10% nationally`,
+         Barriers_Score = `Barriers to Housing and Services - Average score`, Barriers_Proportion = `Barriers to Housing and Services - Proportion of LSOAs in most deprived 10% nationally`) %>% 
   write_csv("data/deaths-la.csv")
