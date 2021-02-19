@@ -14,6 +14,7 @@ library(tidyverse)
 
 deaths_msoa <- read_csv("data/deaths-msoa.csv")
 deaths_la <- read_csv("data/deaths-la.csv")
+slopes <- read_csv("data/regression-slopes.csv")
 ```
 
 ## Deaths and deprivation in Local Authorities
@@ -111,3 +112,26 @@ deaths_msoa %>%
 ```
 
 So although more deprived areas have higher death rates on average at a national level and Local Authority level, the picture becomes a bit blurred when looking at neighbourhoods.
+
+## Modelling regional deprivation and death rates
+For Local Authorities, higher deprivation is associated with higher death rates in the East of England, South East, West Midlands, and Yorkshire and the Humber.
+
+At MSOA-level, higher deprivation is associated with higher death rates in the North East, North West, and Yorkshire and the Humber. 
+
+```{r slopes, echo=FALSE, message=FALSE, warning=FALSE}
+slopes %>% 
+  ggplot(aes(x = Region, y = Q50, group = Model, colour = Model, fill = Model)) +
+  geom_pointrange(aes(ymin = Q2.5, ymax = Q97.5), position = position_dodge(width = 0.4)) +
+  geom_hline(yintercept = 0, lty = 2, colour = "grey") +
+  labs(x = NULL, y = "Predicted death rate in highest-deprivation areas",
+       fill = NULL, colour = NULL,
+       title = "Predicted change in death rates for highest-deprivation areas compared to lowest",
+       subtitle = "Dots are posterior medians; lines are 95% credible intervals") +
+  theme_classic() +
+  theme(
+    legend.position = "top",
+    axis.text.x = element_text(angle = 45, hjust = 1)  # rotate x-axis labels
+  )
+```
+
+These results are from a Bayesian multilevel regressions modelling how extent of deprivation predicts Covid-19 death rates in LAs and MSOAs, with varying intercepts and varying slopes for regions.
