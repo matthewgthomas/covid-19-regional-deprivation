@@ -6,9 +6,13 @@ options(mc.cores = parallel::detectCores())
 deaths_msoa <- read_csv("data/deaths-msoa.csv")
 deaths_la <- read_csv("data/deaths-la.csv")
 
-m_la <- stan_lmer(DeathRate ~ Score + (Score | RGN19NM), data = deaths_la,
+m_la <- stan_lmer(DeathRate ~ Extent + (Extent | RGN19NM), data = deaths_la,
                   prior_intercept = normal(0, 5), prior = normal(0,2), prior_covariance = decov(regularization=2),
-                  cores = 1, chains = 1)
+                  cores = 1, chains = 4)
+
+saveRDS(m_la, "data/la-model.rds")
+
+launch_shinystan(m_la, ppd = FALSE)
 
 plot(m_la)
 summary(m_la)
