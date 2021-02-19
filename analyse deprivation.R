@@ -14,46 +14,38 @@ saveRDS(m_la, "data/la-model.rds")
 
 launch_shinystan(m_la, ppd = FALSE)
 
-plot(m_la)
-summary(m_la)
-
-# Extract the posterior draws for all parameters
-sims <- as.matrix(m_la)
-dim(sims)
-colnames(sims)
-
-# ---- Obtain regional varying intercept a_j ----
-# draws for overall mean
-mu_a_sims <- as.matrix(m_la, 
-                       pars = "Score")
-# draws for region-level error
-# u_sims <- as.matrix(m_la, 
-#                     regex_pars = "b\\[\\(Intercept\\) RGN19NM\\:")
-u_sims <- as.matrix(m_la, 
-                    regex_pars = "b\\[Score RGN19NM\\:")
-# draws for regional varying intercepts               
-a_sims <- as.numeric(mu_a_sims) + u_sims 
-
-# ---- Compute mean, SD, median, and 95% credible interval of varying intercepts ----
-# Posterior mean and SD of each alpha
-a_mean <- apply(X = a_sims,     # posterior mean
+# ---- Obtain regional varying slopes ----
+get_slopes <- function(m, param = "Extent") {
+  # draws for overall mean
+  mu_a_sims <- as.matrix(m, 
+                         pars = param)
+  # draws for region-level error
+  u_sims <- as.matrix(m, 
+                      regex_pars = paste0("b\\[", param, " RGN19NM\\:"))
+  # draws for regional varying intercepts               
+  a_sims <- as.numeric(mu_a_sims) + u_sims 
+  
+  # ---- Compute mean, SD, median, and 95% credible interval of varying intercepts ----
+  # Posterior mean and SD of each alpha
+  a_mean <- apply(X = a_sims,     # posterior mean
+                  MARGIN = 2,
+                  FUN = mean)
+  a_sd <- apply(X = a_sims,       # posterior SD
                 MARGIN = 2,
-                FUN = mean)
-a_sd <- apply(X = a_sims,       # posterior SD
-              MARGIN = 2,
-              FUN = sd)
-
-# Posterior median and 95% credible interval
-a_quant <- apply(X = a_sims, 
-                 MARGIN = 2, 
-                 FUN = quantile, 
-                 probs = c(0.025, 0.50, 0.975))
-a_quant <- data.frame(t(a_quant))
-names(a_quant) <- c("Q2.5", "Q50", "Q97.5")
-
-# Combine summary statistics of posterior simulation draws
-a_df <- data.frame(a_mean, a_sd, a_quant)
-round(a_df, 2)
+                FUN = sd)
+  
+  # Posterior median and 95% credible interval
+  a_quant <- apply(X = a_sims, 
+                   MARGIN = 2, 
+                   FUN = quantile, 
+                   probs = c(0.025, 0.50, 0.975))
+  a_quant <- data.frame(t(a_quant))
+  names(a_quant) <- c("Q2.5", "Q50", "Q97.5")
+  
+  # Combine summary statistics of posterior simulation draws
+  a_df <- data.frame(a_mean, a_sd, a_quant)
+  a_df
+}
 
 # ---- Plot predicted death rates ----
 new_data <- expand_grid(
@@ -80,3 +72,29 @@ new_data %>%
   
   facet_wrap(~RGN19NM) +
   theme_classic()
+
+# ---- MSOA model ----
+m_msoa <- stan_lmer(DeathRate ~ Extent + (Extent | RGN19NM), data = deaths_msoa,
+                    prior_intercept = normal(0, 5), prior = normal(0,2), prior_covariance = decov(regularization=2),
+                    cores = 1, chains = 4)
+
+saveRDS(m_msoa, "data/msoa-model.rds")
+
+launch_shinystan(m_msoa, ppd = FALSE)
+
+# ---- Make tibble with slope estimates from both models ----
+slopes_la <- get_slopes(m_la)
+slopes_msoa <- get_slopes(m_msoa)
+
+slopes <- bind_rows(
+  slopes_la %>% rownames_to_column(var = "Parameter") %>% mutate(Model = "LA"),
+  slopes_msoa %>% rownames_to_column(var = "Parameter") %>% mutate(Model = "MSOA")
+) %>% 
+  
+  mutate(Region = Parameter %>% 
+           str_remove("b\\[Extent RGN19NM:") %>% 
+           str_remove("\\]") %>% 
+           str_replace_all("_", " "))
+
+# Save slopes
+write_csv(slopes, "data/regression-slopes.csv")
