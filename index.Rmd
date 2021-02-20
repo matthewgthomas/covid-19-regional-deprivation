@@ -1,7 +1,7 @@
 ---
 title: "Covid-19 and regional deprivation in England"
 author: "Dr Matthew Gwynfryn Thomas"
-date: "18/02/2021"
+date: "20/02/2021"
 output: html_document
 ---
 
