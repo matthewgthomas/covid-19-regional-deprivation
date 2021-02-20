@@ -100,13 +100,36 @@ slopes <- bind_rows(
 write_csv(slopes, "data/regression-slopes.csv")
 
 # ---- Fit models with IMD score rather than extent ----
-m_score_la <- stan_lmer(DeathRate ~ Score + (Score | RGN19NM), data = deaths_la,
+# Standardise scores
+deaths_la$Score_z = as.numeric(scale(deaths_la$Score))
+deaths_msoa$Score_z = as.numeric(scale(deaths_msoa$Score))
+
+m_score_la <- stan_lmer(DeathRate ~ Score_z + (Score_z | RGN19NM), data = deaths_la,
                         prior_intercept = normal(0, 5), prior = normal(0,2), prior_covariance = decov(regularization=2),
                         cores = 1, chains = 4)
 
-m_score_msoa <- stan_lmer(DeathRate ~ Score + (Score | RGN19NM), data = deaths_msoa,
+m_score_msoa <- stan_lmer(DeathRate ~ Score_z + (Score_z | RGN19NM), data = deaths_msoa,
                           prior_intercept = normal(0, 5), prior = normal(0,2), prior_covariance = decov(regularization=2),
                           cores = 1, chains = 4)
 
 write_rds(m_score_la, "data/la-score-model.rds")
 write_rds(m_score_msoa, "data/msoa-score-model.rds")
+
+launch_shinystan(m_score_la, ppd = FALSE)
+launch_shinystan(m_score_msoa, ppd = FALSE)
+
+slopes_la <- get_slopes(m_score_la, param = "Score_z")
+slopes_msoa <- get_slopes(m_score_msoa, param = "Score_z")
+
+slopes <- bind_rows(
+  slopes_la %>% rownames_to_column(var = "Parameter") %>% mutate(Model = "LA"),
+  slopes_msoa %>% rownames_to_column(var = "Parameter") %>% mutate(Model = "MSOA")
+) %>% 
+  
+  mutate(Region = Parameter %>% 
+           str_remove("b\\[Score_z RGN19NM:") %>% 
+           str_remove("\\]") %>% 
+           str_replace_all("_", " "))
+
+# Save slopes
+write_csv(slopes, "data/regression-slopes-scores.csv")
