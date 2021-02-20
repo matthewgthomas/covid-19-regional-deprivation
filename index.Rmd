@@ -12,9 +12,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r loading, include=FALSE}
 library(tidyverse)
 
+# Load files created by `prep data.R`
 deaths_msoa <- read_csv("data/deaths-msoa.csv")
 deaths_la <- read_csv("data/deaths-la.csv")
-slopes <- read_csv("data/regression-slopes.csv")
+
+# Regression slopes from `analyse deprivation.R`
+slopes_extent <- read_csv("data/regression-slopes.csv")
+slopes_score <- read_csv("data/regression-slopes-scores.csv")
 ```
 
 ## Deaths and deprivation in Local Authorities
@@ -118,8 +122,8 @@ For Local Authorities, higher deprivation is associated with higher death rates 
 
 At MSOA-level, higher deprivation is associated with higher death rates in the North East, North West, and Yorkshire and the Humber. 
 
-```{r slopes, echo=FALSE, message=FALSE, warning=FALSE}
-slopes %>% 
+```{r slopes_extent, echo=FALSE, message=FALSE, warning=FALSE}
+slopes_extent %>% 
   ggplot(aes(x = Region, y = Q50, group = Model, colour = Model, fill = Model)) +
   geom_pointrange(aes(ymin = Q2.5, ymax = Q97.5), position = position_dodge(width = 0.4)) +
   geom_hline(yintercept = 0, lty = 2, colour = "grey") +
@@ -135,3 +139,22 @@ slopes %>%
 ```
 
 These results are from a Bayesian multilevel regressions modelling how extent of deprivation predicts Covid-19 death rates in LAs and MSOAs, with varying intercepts and varying slopes for regions.
+
+## Which measure of deprivation you use matters
+The results above are based on the proportion of the population who live within the nation's most deprived neighbourhoods. If we instead model death rates using average deprivation scores, a slightly different picture emerges. Now there is also a statistically significant association between deprivation and death rates in the East and West Midlands for MSOAs. At LA-level, significant associations are found in the East Midlands, Yorkshire and the Humber, as well as the East and South East.
+
+```{r slopes_score, echo=FALSE, message=FALSE, warning=FALSE}
+slopes_score %>% 
+  ggplot(aes(x = Region, y = Q50, group = Model, colour = Model, fill = Model)) +
+  geom_pointrange(aes(ymin = Q2.5, ymax = Q97.5), position = position_dodge(width = 0.4)) +
+  geom_hline(yintercept = 0, lty = 2, colour = "grey") +
+  labs(x = NULL, y = "Predicted death rate",
+       fill = NULL, colour = NULL,
+       title = "Predicted death rates given a one standard deviation change in deprivation scores",
+       subtitle = "Dots are posterior medians; lines are 95% credible intervals") +
+  theme_classic() +
+  theme(
+    legend.position = "top",
+    axis.text.x = element_text(angle = 45, hjust = 1)  # rotate x-axis labels
+  )
+```
